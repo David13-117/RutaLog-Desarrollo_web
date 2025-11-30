@@ -88,19 +88,24 @@ export default function PackagesList({ packages }: PackagesListProps) {
 
               {/* ACCIONES: Botones para cambiar estado */}
               <div className="flex flex-col gap-2">
+                {/* Botón En tránsito: activo si pendiente, bloqueado si es otro estado */}
                 <Button
                   size="sm"
-                  variant="outline"
-                  disabled={pkg.status === "entregado" || updatingId === pkg.id}
+                  variant={pkg.status === "pendiente" ? "default" : "outline"}
+                  disabled={(pkg.status !== "pendiente" && pkg.status !== "en_transito") || updatingId === pkg.id}
                   onClick={() => handleUpdateStatus(pkg.id, "en_transito")}
+                  className={pkg.status === "pendiente" ? "bg-blue-600 hover:bg-blue-700" : ""}
                 >
                   En tránsito
                 </Button>
+
+                {/* Botón Entregar: activo si está en tránsito, bloqueado si es otro estado */}
                 <Button
                   size="sm"
-                  variant="outline"
-                  disabled={updatingId === pkg.id}
+                  variant={pkg.status === "entregado" ? "default" : "outline"}
+                  disabled={(pkg.status !== "en_transito" && pkg.status !== "entregado") || updatingId === pkg.id}
                   onClick={() => handleUpdateStatus(pkg.id, "entregado")}
+                  className={pkg.status === "entregado" ? "bg-green-600 hover:bg-green-700" : ""}
                 >
                   Entregar
                 </Button>

@@ -43,6 +43,7 @@ type LogisticsAction =
   | { type: "SET_ROUTES"; payload: Route[] }
   | { type: "UPDATE_PACKAGE"; payload: Package }
   | { type: "ADD_ROUTE"; payload: Route }
+  | { type: "UPDATE_ROUTE"; payload: Route }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }
 
@@ -60,6 +61,11 @@ function logisticsReducer(state: LogisticsState, action: LogisticsAction): Logis
       }
     case "ADD_ROUTE":
       return { ...state, routes: [...state.routes, action.payload] }
+    case "UPDATE_ROUTE":
+      return {
+        ...state,
+        routes: state.routes.map((r) => (r.id === action.payload.id ? action.payload : r)),
+      }
     case "SET_LOADING":
       return { ...state, isLoading: action.payload }
     case "SET_ERROR":
@@ -75,6 +81,7 @@ interface LogisticsContextType {
   fetchRoutes: () => Promise<void>
   updatePackageStatus: (packageId: string, status: Package["status"]) => Promise<void>
   assignPackageToDriver: (packageId: string, driverId: string) => Promise<void>
+  updateRouteStatus: (routeId: string, status: Route["status"]) => Promise<void>
 }
 
 const LogisticsContext = createContext<LogisticsContextType | undefined>(undefined)
@@ -213,12 +220,31 @@ export function LogisticsProvider({ children }: { children: ReactNode }) {
     [state.packages],
   )
 
+  // MOCK API: Actualizar estado de ruta
+  const updateRouteStatus = useCallback(
+    async (routeId: string, status: Route["status"]) => {
+      dispatch({ type: "SET_LOADING", payload: true })
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 600))
+
+        const route = state.routes.find((r) => r.id === routeId)
+        if (route) {
+          dispatch({ type: "UPDATE_ROUTE", payload: { ...route, status } })
+        }
+      } finally {
+        dispatch({ type: "SET_LOADING", payload: false })
+      }
+    },
+    [state.routes],
+  )
+
   const value: LogisticsContextType = {
     state,
     fetchPackages,
     fetchRoutes,
     updatePackageStatus,
     assignPackageToDriver,
+    updateRouteStatus,
   }
 
   return <LogisticsContext.Provider value={value}>{children}</LogisticsContext.Provider>

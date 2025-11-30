@@ -3,15 +3,30 @@
 
 "use client"
 
-import type { Route } from "@/context/logistics-context"
+import { useLogistics, type Route } from "@/context/logistics-context"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { useState } from "react"
 
 interface ConductorAssignedRoutesProps {
   routes: Route[]
 }
 
 export default function ConductorAssignedRoutes({ routes }: ConductorAssignedRoutesProps) {
+  const { updateRouteStatus } = useLogistics()
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
+
+  const handleToggleRouteStatus = async (routeId: string, currentStatus: Route["status"]) => {
+    setUpdatingId(routeId)
+    try {
+      // Alternar entre activa y paused
+      const newStatus: Route["status"] = currentStatus === "activa" ? "paused" : "activa"
+      await updateRouteStatus(routeId, newStatus)
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   // HELPER: Obtener color según estado
   const getStatusColor = (status: Route["status"]) => {
     const colors: Record<Route["status"], string> = {
@@ -75,15 +90,18 @@ export default function ConductorAssignedRoutes({ routes }: ConductorAssignedRou
                 </div>
               </div>
 
-              {/* ACCIONES: Botones de acción */}
               <div className="flex flex-col gap-2">
-                <Button className="whitespace-nowrap" disabled={route.status === "completada"}>
+                <Button
+                  className="whitespace-nowrap"
+                  disabled={route.status === "completada" || updatingId === route.id}
+                >
                   {route.status === "activa" ? "En Progreso" : "Ver Detalles"}
                 </Button>
                 <Button
                   variant="outline"
                   className="whitespace-nowrap bg-transparent"
-                  disabled={route.status === "completada"}
+                  disabled={route.status === "completada" || updatingId === route.id}
+                  onClick={() => handleToggleRouteStatus(route.id, route.status)}
                 >
                   {route.status === "activa" ? "Pausar" : "Reanudar"}
                 </Button>
