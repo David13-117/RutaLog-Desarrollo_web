@@ -1,5 +1,5 @@
 // SISTEMA DE RUTEO LOGÍSTICO - LOGIN PAGE
-// Página de autenticación con imagen de fondo de almacén
+// Página de autenticación con imagen de fondo de almacén oscurecida al 15%
 // Soporta dos tipos de usuario: admin y conductor
 
 "use client"
@@ -41,19 +41,20 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden">
-      {/* FONDO: Imagen de almacén logístico con opacidad */}
+    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background">
+      {/* FONDO: Imagen de almacén logístico con opacidad al 15% */}
       <div
         className="absolute inset-0 bg-cover bg-center opacity-15"
         style={{
-          backgroundImage:
-            "url(/placeholder.svg?height=1080&width=1920&query=warehouse+logistics+storage+center+industrial)",
+          backgroundImage: "url(/logistics-background.jpg)",
         }}
       />
 
+      <div className="absolute inset-0 bg-background/40" />
+
       {/* CONTENEDOR PRINCIPAL: Tarjeta de login */}
       <div className="relative z-10 w-full max-w-md px-4">
-        <Card className="p-8 shadow-2xl">
+        <Card className="p-8 shadow-2xl border-2 border-primary">
           {/* HEADER: Título del sistema */}
           <div className="mb-8 text-center">
             <h1 className="text-3xl font-bold text-foreground mb-2">Sistema de Ruteo Logístico</h1>
@@ -95,8 +96,12 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* BOTÓN: Submit */}
-            <Button type="submit" disabled={isLoading || !username || !password} className="w-full">
+            {/* BOTÓN: Submit - usa color primario azul */}
+            <Button
+              type="submit"
+              disabled={isLoading || !username || !password}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
               {isLoading ? "Autenticando..." : "Ingresar"}
             </Button>
           </form>
