@@ -1,5 +1,6 @@
 // SISTEMA DE RUTEO LOGÍSTICO - CONDUCTOR ASSIGNED ROUTES
 // Muestra las rutas asignadas al conductor con detalles de navegación
+// Permite cambiar entre rutas activa y paused
 
 "use client"
 
@@ -10,18 +11,26 @@ import { useState } from "react"
 
 interface ConductorAssignedRoutesProps {
   routes: Route[]
+  activeRouteId?: string | null
+  onRouteChange?: (routeId: string) => void
 }
 
-export default function ConductorAssignedRoutes({ routes }: ConductorAssignedRoutesProps) {
+export default function ConductorAssignedRoutes({
+  routes,
+  activeRouteId,
+  onRouteChange,
+}: ConductorAssignedRoutesProps) {
   const { updateRouteStatus } = useLogistics()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   const handleToggleRouteStatus = async (routeId: string, currentStatus: Route["status"]) => {
     setUpdatingId(routeId)
     try {
-      // Alternar entre activa y paused
       const newStatus: Route["status"] = currentStatus === "activa" ? "paused" : "activa"
       await updateRouteStatus(routeId, newStatus)
+      if (newStatus === "activa" && onRouteChange) {
+        onRouteChange(routeId)
+      }
     } finally {
       setUpdatingId(null)
     }
@@ -45,7 +54,13 @@ export default function ConductorAssignedRoutes({ routes }: ConductorAssignedRou
         </Card>
       ) : (
         routes.map((route) => (
-          <Card key={route.id} className="p-6">
+          <Card
+            key={route.id}
+            className={`p-6 cursor-pointer transition-all ${
+              activeRouteId === route.id ? "border-primary border-2 bg-primary/5" : ""
+            }`}
+            onClick={() => route.status !== "completada" && onRouteChange?.(route.id)}
+          >
             <div className="flex items-start justify-between gap-4">
               {/* INFORMACION: Detalles de la ruta */}
               <div className="flex-1">
@@ -101,7 +116,10 @@ export default function ConductorAssignedRoutes({ routes }: ConductorAssignedRou
                   variant="outline"
                   className="whitespace-nowrap bg-transparent"
                   disabled={route.status === "completada" || updatingId === route.id}
-                  onClick={() => handleToggleRouteStatus(route.id, route.status)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleToggleRouteStatus(route.id, route.status)
+                  }}
                 >
                   {route.status === "activa" ? "Pausar" : "Reanudar"}
                 </Button>

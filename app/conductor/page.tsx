@@ -1,6 +1,6 @@
 // SISTEMA DE RUTEO LOGÍSTICO - CONDUCTOR DASHBOARD
 // Panel para conductores
-// Visualiza rutas asignadas, paquetes a entregar y estado de entregas
+// Visualiza rutas asignadas, paquetes a entregar y entregas completadas
 
 "use client"
 
@@ -17,7 +17,8 @@ import ConductorAssignedPackages from "@/components/conductor/conductor-assigned
 export default function ConductorDashboard() {
   const { user } = useAuth()
   const { state, fetchPackages, fetchRoutes } = useLogistics()
-  const [activeTab, setActiveTab] = useState<"routes" | "packages">("routes")
+  const [activeTab, setActiveTab] = useState<"routes" | "deliveries">("routes")
+  const [activeRouteId, setActiveRouteId] = useState<string | null>(null)
 
   // EFFECT: Cargar datos al montar el componente
   useEffect(() => {
@@ -28,8 +29,16 @@ export default function ConductorDashboard() {
   // FILTER: Obtener rutas asignadas al conductor actual
   const assignedRoutes = state.routes.filter((r) => r.assignedDriver === user?.id)
 
-  // FILTER: Obtener paquetes asignados al conductor actual
-  const assignedPackages = state.packages.filter((p) => p.assignedTo === user?.id)
+  const activeRoute = activeRouteId
+    ? assignedRoutes.find((r) => r.id === activeRouteId)
+    : assignedRoutes.find((r) => r.status === "activa")
+
+  const routePackages = activeRoute
+    ? state.packages.filter((p) => activeRoute.packages.includes(p.id) && p.assignedTo === user?.id)
+    : []
+
+  const activeDeliveries = routePackages.filter((p) => p.status !== "entregado")
+  const completedDeliveries = routePackages.filter((p) => p.status === "entregado")
 
   return (
     <ProtectedRoute requiredRole="conductor">
@@ -47,7 +56,7 @@ export default function ConductorDashboard() {
             </p>
           </div>
 
-          {/* TABS: Navegación entre rutas y paquetes */}
+          {/* TABS: Navegación entre rutas y entregas */}
           <div className="flex gap-2 mb-6 border-b border-border">
             <Button
               variant={activeTab === "routes" ? "default" : "ghost"}
@@ -57,11 +66,11 @@ export default function ConductorDashboard() {
               Mis Rutas ({assignedRoutes.length})
             </Button>
             <Button
-              variant={activeTab === "packages" ? "default" : "ghost"}
-              onClick={() => setActiveTab("packages")}
+              variant={activeTab === "deliveries" ? "default" : "ghost"}
+              onClick={() => setActiveTab("deliveries")}
               className="rounded-b-none"
             >
-              Mis Entregas ({assignedPackages.length})
+              Entregas
             </Button>
           </div>
 
@@ -76,8 +85,72 @@ export default function ConductorDashboard() {
             </Card>
           ) : (
             <>
-              {activeTab === "routes" && <ConductorAssignedRoutes routes={assignedRoutes} />}
-              {activeTab === "packages" && <ConductorAssignedPackages packages={assignedPackages} />}
+              {activeTab === "routes" && (
+                <ConductorAssignedRoutes
+                  routes={assignedRoutes}
+                  activeRouteId={activeRouteId}
+                  onRouteChange={setActiveRouteId}
+                />
+              )}
+              {activeTab === "deliveries" && (
+                <div className="space-y-6">
+                  {/* SELECTOR DE RUTA */}
+                  {assignedRoutes.length > 0 && (
+                    <Card className="p-4 bg-muted/50">
+                      <p className="text-sm text-muted-foreground mb-3">Selecciona una ruta:</p>
+                      <div className="flex gap-2 flex-wrap">
+                        {assignedRoutes.map((route) => (
+                          <Button
+                            key={route.id}
+                            variant={activeRoute?.id === route.id ? "default" : "outline"}
+                            onClick={() => setActiveRouteId(route.id)}
+                            className="text-sm"
+                          >
+                            {route.name}
+                            <span className="ml-2 text-xs px-2 py-0.5 rounded bg-background/50">{route.status}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    </Card>
+                  )}
+
+                  {/* ENTREGAS ACTIVAS */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground mb-3">
+                      Entregas Activas ({activeDeliveries.length})
+                    </h2>
+                    <ConductorAssignedPackages packages={activeDeliveries} />
+                  </div>
+
+                  {/* ENTREGAS COMPLETADAS */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground mb-3">
+                      Entregas Completadas ({completedDeliveries.length})
+                    </h2>
+                    {completedDeliveries.length === 0 ? (
+                      <Card className="p-8 text-center">
+                        <p className="text-muted-foreground">No hay entregas completadas en esta ruta</p>
+                      </Card>
+                    ) : (
+                      <div className="grid gap-3">
+                        {completedDeliveries.map((pkg) => (
+                          <Card key={pkg.id} className="p-4 bg-green-50 border border-green-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-foreground">{pkg.trackingNumber}</p>
+                                <p className="text-sm text-muted-foreground">{pkg.destination}</p>
+                              </div>
+                              <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 font-semibold">
+                                ✓ Entregado
+                              </span>
+                            </div>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </main>
