@@ -31,9 +31,18 @@ export interface Route {
   status: "activa" | "completada" | "paused"
 }
 
+export interface Conductor {
+  id: string
+  name: string
+  email: string
+  phone: string
+  status: "activo" | "inactivo"
+}
+
 export interface LogisticsState {
   packages: Package[]
   routes: Route[]
+  conductors: Conductor[]
   isLoading: boolean
   error: string | null
 }
@@ -46,6 +55,8 @@ type LogisticsAction =
   | { type: "UPDATE_ROUTE"; payload: Route }
   | { type: "SET_LOADING"; payload: boolean }
   | { type: "SET_ERROR"; payload: string | null }
+  | { type: "ADD_PACKAGE"; payload: Package }
+  | { type: "DELETE_PACKAGE"; payload: string }
 
 // Reducer para manejar la lógica de estado
 function logisticsReducer(state: LogisticsState, action: LogisticsAction): LogisticsState {
@@ -58,6 +69,16 @@ function logisticsReducer(state: LogisticsState, action: LogisticsAction): Logis
       return {
         ...state,
         packages: state.packages.map((p) => (p.id === action.payload.id ? action.payload : p)),
+      }
+    case "ADD_PACKAGE":
+      return {
+        ...state,
+        packages: [...state.packages, action.payload],
+      }
+    case "DELETE_PACKAGE":
+      return {
+        ...state,
+        packages: state.packages.filter((p) => p.id !== action.payload),
       }
     case "ADD_ROUTE":
       return { ...state, routes: [...state.routes, action.payload] }
@@ -82,6 +103,9 @@ interface LogisticsContextType {
   updatePackageStatus: (packageId: string, status: Package["status"]) => Promise<void>
   assignPackageToDriver: (packageId: string, driverId: string) => Promise<void>
   updateRouteStatus: (routeId: string, status: Route["status"]) => Promise<void>
+  addPackage: (pkg: Omit<Package, "id" | "createdAt">) => Promise<void>
+  updatePackage: (pkg: Package) => Promise<void>
+  deletePackage: (packageId: string) => Promise<void>
 }
 
 const LogisticsContext = createContext<LogisticsContextType | undefined>(undefined)
@@ -90,6 +114,7 @@ export function LogisticsProvider({ children }: { children: ReactNode }) {
   const initialState: LogisticsState = {
     packages: [],
     routes: [],
+    conductors: [],
     isLoading: false,
     error: null,
   }
@@ -238,6 +263,57 @@ export function LogisticsProvider({ children }: { children: ReactNode }) {
     [state.routes],
   )
 
+  // MOCK API: Agregar paquete
+  const addPackage = useCallback(async (pkg: Omit<Package, "id" | "createdAt">) => {
+    dispatch({ type: "SET_LOADING", payload: true })
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+
+      const newPackage: Package = {
+        ...pkg,
+        id: `pkg-${Date.now()}`,
+        createdAt: new Date().toISOString(),
+      }
+
+      dispatch({ type: "ADD_PACKAGE", payload: newPackage })
+      dispatch({ type: "SET_ERROR", payload: null })
+    } catch (err) {
+      dispatch({ type: "SET_ERROR", payload: "Error al agregar paquete" })
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false })
+    }
+  }, [])
+
+  // MOCK API: Actualizar paquete
+  const updatePackage = useCallback(async (pkg: Package) => {
+    dispatch({ type: "SET_LOADING", payload: true })
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+
+      dispatch({ type: "UPDATE_PACKAGE", payload: pkg })
+      dispatch({ type: "SET_ERROR", payload: null })
+    } catch (err) {
+      dispatch({ type: "SET_ERROR", payload: "Error al actualizar paquete" })
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false })
+    }
+  }, [])
+
+  // MOCK API: Eliminar paquete
+  const deletePackage = useCallback(async (packageId: string) => {
+    dispatch({ type: "SET_LOADING", payload: true })
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 600))
+
+      dispatch({ type: "DELETE_PACKAGE", payload: packageId })
+      dispatch({ type: "SET_ERROR", payload: null })
+    } catch (err) {
+      dispatch({ type: "SET_ERROR", payload: "Error al eliminar paquete" })
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false })
+    }
+  }, [])
+
   const value: LogisticsContextType = {
     state,
     fetchPackages,
@@ -245,6 +321,9 @@ export function LogisticsProvider({ children }: { children: ReactNode }) {
     updatePackageStatus,
     assignPackageToDriver,
     updateRouteStatus,
+    addPackage,
+    updatePackage,
+    deletePackage,
   }
 
   return <LogisticsContext.Provider value={value}>{children}</LogisticsContext.Provider>

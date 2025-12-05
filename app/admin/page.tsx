@@ -76,7 +76,7 @@ export default function AdminDashboard() {
             </Card>
           ) : (
             <>
-              {activeTab === "packages" && <PackagesList packages={state.packages} />}
+              {activeTab === "packages" && <PackagesList packages={state.packages} routes={state.routes} />}
               {activeTab === "routes" && <RoutesList routes={state.routes} />}
               {activeTab === "stats" && <StatsOverview packages={state.packages} routes={state.routes} />}
             </>

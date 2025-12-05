@@ -3,18 +3,23 @@
 
 "use client"
 
-import { useLogistics, type Package } from "@/context/logistics-context"
+import { useLogistics, type Package, type Route } from "@/context/logistics-context"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import PackageFormModal from "./package-form-modal"
 
 interface PackagesListProps {
   packages: Package[]
+  routes: Route[]
 }
 
-export default function PackagesList({ packages }: PackagesListProps) {
-  const { updatePackageStatus } = useLogistics()
+export default function PackagesList({ packages, routes }: PackagesListProps) {
+  const { updatePackageStatus, deletePackage } = useLogistics()
   const [updatingId, setUpdatingId] = useState<string | null>(null)
+  const [editingPackage, setEditingPackage] = useState<Package | null>(null)
+  const [showForm, setShowForm] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   // MANEJO: Actualizar estado de paquete
   const handleUpdateStatus = async (packageId: string, newStatus: Package["status"]) => {
@@ -23,6 +28,17 @@ export default function PackagesList({ packages }: PackagesListProps) {
       await updatePackageStatus(packageId, newStatus)
     } finally {
       setUpdatingId(null)
+    }
+  }
+
+  const handleDeletePackage = async (packageId: string) => {
+    if (confirm("¿Estás seguro de que deseas eliminar este paquete?")) {
+      setDeletingId(packageId)
+      try {
+        await deletePackage(packageId)
+      } finally {
+        setDeletingId(null)
+      }
     }
   }
 
@@ -48,7 +64,30 @@ export default function PackagesList({ packages }: PackagesListProps) {
   }
 
   return (
-    <div className="grid gap-4">
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button
+          onClick={() => {
+            setEditingPackage(null)
+            setShowForm(true)
+          }}
+          className="bg-primary"
+        >
+          + Agregar Paquete
+        </Button>
+      </div>
+
+      {showForm && (
+        <PackageFormModal
+          package={editingPackage || undefined}
+          routes={routes}
+          onClose={() => {
+            setShowForm(false)
+            setEditingPackage(null)
+          }}
+        />
+      )}
+
       {packages.length === 0 ? (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground">No hay paquetes registrados</p>
@@ -86,9 +125,8 @@ export default function PackagesList({ packages }: PackagesListProps) {
                 </div>
               </div>
 
-              {/* ACCIONES: Botones para cambiar estado */}
+              {/* ACCIONES: Botones para cambiar estado y editar/eliminar */}
               <div className="flex flex-col gap-2">
-                {/* Botón En tránsito: activo si pendiente, bloqueado si es otro estado */}
                 <Button
                   size="sm"
                   variant={pkg.status === "pendiente" ? "default" : "outline"}
@@ -99,7 +137,6 @@ export default function PackagesList({ packages }: PackagesListProps) {
                   En tránsito
                 </Button>
 
-                {/* Botón Entregar: activo si está en tránsito, bloqueado si es otro estado */}
                 <Button
                   size="sm"
                   variant={pkg.status === "entregado" ? "default" : "outline"}
@@ -108,6 +145,26 @@ export default function PackagesList({ packages }: PackagesListProps) {
                   className={pkg.status === "entregado" ? "bg-green-600 hover:bg-green-700" : ""}
                 >
                   Entregar
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    setEditingPackage(pkg)
+                    setShowForm(true)
+                  }}
+                >
+                  Editar
+                </Button>
+
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => handleDeletePackage(pkg.id)}
+                  disabled={deletingId === pkg.id}
+                >
+                  {deletingId === pkg.id ? "Eliminando..." : "Eliminar"}
                 </Button>
               </div>
             </div>
